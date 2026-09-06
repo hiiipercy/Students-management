@@ -1,32 +1,38 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm, Link } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { Head, useForm, Link, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
+import { onMounted, ref, watch } from 'vue';
 
 defineProps({
     classes: { type: Object, required: true },
+    student: { type: Object, required: true },
 });
 
 const sections = ref([]);
+const students = usePage().props.student.data;
+
 
 const form = useForm({
-    name: '',
-    email: '',
-    class_id: '',
-    section_id: '',
+    name: students.name,
+    email: students.email,
+    class_id: students.class.id,
+    section_id: students.section.id,
 });
 
-// const submit = () => {
-//     form.post(route('students.store'), {
-//         onSuccess: () => form.reset(),
-//     });
-// };
+
+
+ // Fetch sections for the selected class when the component is mounted
+onMounted(() => {
+    if (form.class_id) {
+        getSections(form.class_id);
+    }
+});
 
 const getSections = (classId) => {
     axios.get('/api/sections', { params: { class_id: classId } })
         .then((response) => {
             sections.value = response.data;
-            // console.log(sections.value); // Debugging line to check the fetched sections
         })
         .catch(error => {
             console.error('Error fetching sections:', error);
@@ -39,8 +45,8 @@ watch(() => form.class_id, (newValue) => {
     if (newValue) getSections(newValue);
 });
 
-const createStudent = () => {
-    form.post(route('students.store'), {
+const updateStudent = () => {
+    form.put(route('students.update', students.id), {
         onSuccess: () => {
             form.reset();
             // Optionally, you can redirect or show a success message here
@@ -55,14 +61,14 @@ const createStudent = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Add New Student</h2>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Update Student</h2>
         </template>
 
         <div class="py-12">
             <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                     
-                    <form @submit.prevent="createStudent" class="space-y-6">
+                    <form @submit.prevent="updateStudent" class="space-y-6">
                         <!-- Name Field -->
                         <div>
                             <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
@@ -138,7 +144,7 @@ const createStudent = () => {
                                 :disabled="form.processing"
                                 class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
                             >
-                                {{ form.processing ? 'Adding...' : 'Add Student' }}
+                                {{ form.processing ? 'Updating...' : 'Update Student' }}
                             </button>
                         </div>
                     </form>
